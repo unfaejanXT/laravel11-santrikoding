@@ -28,10 +28,10 @@ class PostController extends Controller
 
         // Validasi input dari pengguna
         // Memastikan bahwa gambar, judul, dan konten disertakan dan memenuhi kriteria minimum
-        $validated = $request->validate([
-            'image'     => 'required|image',  // Menambahkan validasi tipe file untuk gambar
-            'title'     => 'required|min:5',  // Judul harus ada dan minimal 5 karakter
-            'content'   => 'required|min:10'  // Konten harus ada dan minimal 10 karakter
+        $request->validate([
+            'image'     => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'title'     => 'required|min:5',
+            'content'   => 'required|min:10'
         ]);
     
         // Simpan gambar ke dalam direktori penyimpanan publik 'posts'
@@ -50,6 +50,57 @@ class PostController extends Controller
         return redirect()->route('posts.index')->with('success', 'Data Berhasil Disimpan');
     }
     
+    public function show($id) {
+        // Mengambil data post berdasarkan ID yang diberikan
+        // Menggunakan metode 'find' untuk mencari post dengan ID yang spesifik
+        $post = Post::find($id);
     
+        // Mengirimkan data post ke tampilan 'posts.show'
+        // 'compact' digunakan untuk mengirimkan variabel $post ke view dengan nama yang sama
+        return view('posts.show', compact('post'));
+    }
+
+    public function edit(Post $post){
+        return view('posts.edit', compact('post'));
+    }
+
+    public function update(Request $request,Post $post){
+
+        $request->validate([
+            'image'     => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'title'     => 'required|min:5',
+            'content'   => 'required|min:10'
+        ]);
+
+        //check if image is uploaded
+        if ($request->hasFile('image')) {
+
+            //upload new image
+            $image = $request->file('image');
+            $image->storeAs('public/posts', $image->hashName());
+
+            //delete old image
+            Storage::delete('public/posts/'.$post->image);
+
+            //update post with new image
+            $post->update([
+                'image'     => $image->hashName(),
+                'title'     => $request->title,
+                'content'   => $request->content
+            ]);
+
+        } else {
+
+            //update post without image
+            $post->update([
+                'title'     => $request->title,
+                'content'   => $request->content
+            ]);
+        }
+
+        //redirect to index
+        return redirect()->route('posts.index')->with(['success' => 'Data Berhasil Diubah!']);
+
+    }
 
 }
